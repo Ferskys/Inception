@@ -1,0 +1,37 @@
+name: "Inception"
+
+services:
+  nginx:
+    container_name: "nginx"
+    build: requirements/nginx
+    ports:
+      - "443:443"
+    volumes:
+      - ./web:/var/www/html
+    depends_on:
+      - wordpress
+      - mariadb
+    networks:
+      - docker-network
+    restart: always
+
+  wordpress:
+    container_name: "wordpress"
+    build: requirements/wordpress
+    volumes:
+      - ./web:/var/www/html
+    depends_on:
+      - mariadb
+    networks:
+      - docker-network
+
+  mariadb:
+    container_name: "mariadb"
+    build: requirements/mariadb
+    volumes:
+      - ./db:/var/lib/mysql
+    networks:
+      - docker-network
+
+networks:
+  docker-network:
