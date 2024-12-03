@@ -1,44 +1,40 @@
 version: '3.8'
 
 services:
-  mariadb:
-    build: ./requirements/mariadb
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - ../data/mariadb:/var/lib/mysql
-    networks:
-      - backend
-
-  wordpress:
-    build: ./requirements/wordpress
-    environment:
-      WORDPRESS_DB_HOST: mariadb:3306
-      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
-      WORDPRESS_DB_USER: ${MYSQL_USER}
-      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - ../data/wordpress:/var/www/html
-    depends_on:
-      - mariadb
-    networks:
-      - backend
-
   nginx:
     build: ./requirements/nginx
     ports:
       - "443:443"
-    volumes:
-      - ./requirements/nginx/conf:/etc/nginx/conf.d
-      - ./requirements/nginx/certs:/etc/nginx/certs
-    depends_on:
-      - wordpress
-    networks:
-      - backend
-
+    # volumes:
+    #   - ./requirements/nginx/conf:/etc/nginx/conf.ddo
+    #   - ./requirements/nginx/certs:/etc/nginx/certs
+    # networks:
+    #   - backend
 networks:
   backend:
     driver: bridge
+  # mariadb:
+  #   build: ./requirements/mariadb
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: ${MYSQL_DATABASE}
+  #     MYSQL_USER: ${MYSQL_USER}
+  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #   volumes:
+  #     - ../data/mariadb:/var/lib/mysql
+  #   networks:
+  #     - backend
+
+  # wordpress:
+  #   build: ./requirements/wordpress
+  #   environment:
+  #     WORDPRESS_DB_HOST: mariadb:3306
+  #     WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+  #     WORDPRESS_DB_USER: ${MYSQL_USER}
+  #     WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+  #   volumes:
+  #     - ../data/wordpress:/var/www/html
+  #   depends_on:
+  #     - mariadb
+  #   networks:
+  #     - backend
