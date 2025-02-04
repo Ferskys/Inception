@@ -5,9 +5,10 @@ services:
     build: ./requirements/nginx
     ports:
       - "443:443"
-    # volumes:
-    #   - ./requirements/nginx/conf:/etc/nginx/conf.ddo
-    #   - ./requirements/nginx/certs:/etc/nginx/certs
+    env_file:
+      - .env
+    volumes:
+      - wordpress:/var/www/wordpress
     networks:
       - inception
   mariadb:
@@ -16,7 +17,47 @@ services:
       - "3306:3306"
     env_file:
       - .env
+    volumes:
+      - mariadb:/var/lib/mysql
     networks:
      - inception
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+  wordpress:
+    build: ./requirements/wordpress
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    volumes:
+      - wordpress:/var/www/wordpress
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - inception
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/wp-admin/install.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+volumes:
+  wordpress:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/fer/inception/data/wordpress
+      o: bind
+  mariadb:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/fer/inception/data/mariadb
+      o: bind
 networks:
   inception:

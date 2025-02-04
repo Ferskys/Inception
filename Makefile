@@ -2,7 +2,9 @@
 
 all: build up
 
-build:
+build: 
+	mkdir -p /home/fer/inception/data/wordpress
+	mkdir -p /home/fer/inception/data/mariadb
 	docker compose -f srcs/docker-compose.yml build
 
 up:
