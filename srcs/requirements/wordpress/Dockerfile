@@ -1,38 +1,39 @@
-FROM alpine:3.19.4
-RUN apk update && \
-    apk upgrade && \
-    apk add php82 \
-    php82-fpm \
-    php82-mysqli \
-    php82-json \
-    php82-xml \
-    php82-curl \
-    php82-openssl \
-    php82-mbstring \
-    php82-gd \
-    php82-zlib \
-    php82-phar \
-    mysql-client \
-    curl
+# srcs/requirements/wordpress/Dockerfile
+FROM alpine:3.20.6
 
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+# Update the package index and install PHP 8.3 and required extensions
+RUN apk update && apk add --no-cache \
+    php83 \
+    php83-fpm \
+    php83-mysqli \
+    php83-json \
+    php83-openssl \
+    php83-curl \
+    php83-zlib \
+    php83-xml \
+    php83-phar \
+    php83-tokenizer \
+    php83-dom \
+    php83-ctype \
+    php83-iconv \
+    php83-session \
+    php83-mbstring \
+    wget
 
-RUN chmod +x wp-cli.phar
+# Download and extract WordPress
+RUN wget https://wordpress.org/latest.tar.gz && \
+    mkdir -p /var/www/html && \
+    tar -xzf latest.tar.gz -C /var/www/html --strip-components=1 && \
+    rm latest.tar.gz
 
-RUN mv wp-cli.phar /usr/local/bin/wp
+# Copy the WordPress configuration file
+COPY conf/wp-config.php /var/www/html/wp-config.php
 
-WORKDIR /var/www/wordpress
+# Set permissions
+RUN chown -R nobody:nobody /var/www/html
 
-RUN wp core download --path=/var/www/wordpress
-
-COPY wordpress.sh /usr/bin/wordpress.sh
-
-RUN chmod +x /usr/bin/wordpress.sh
-
-RUN mkdir -p /run/php
-
+# Expose port 9000 for php-clearfpm
 EXPOSE 9000
 
-RUN echo "listen = 0.0.0.0:9000" >> /etc/php82/php-fpm.d/www.conf
-
-ENTRYPOINT [ "/usr/bin/wordpress.sh" ]
+# Start php-fpm
+CMD ["/usr/sbin/php-fpm83", "-F"]
