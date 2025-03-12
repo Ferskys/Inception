@@ -1,22 +1,68 @@
-version: '3.8'
-
+version: "3.8"
 services:
   nginx:
-    build: ./requirements/nginx
+    build:
+      context: ./requirements/nginx  # Caminho para o Dockerfile do nginx
+    container_name: nginx
+    volumes:
+      - wordpress-data:/var/www/wordpress
     ports:
       - "443:443"
-    # volumes:
-    #   - ./requirements/nginx/conf:/etc/nginx/conf.ddo
-    #   - ./requirements/nginx/certs:/etc/nginx/certs
     networks:
       - inception
-  mariadb:
-    build: ./requirements/mariadb
-    ports:
-      - "3306:3306"
+    restart: always
+    depends_on:
+      - wordpress
+
+  wordpress:
+    build:
+      context: ./requirements/wordpress  # Caminho para o Dockerfile do wordpress
+    container_name: wordpress
     env_file:
-      - .env
+      - .env  # Certifique-se de ter o arquivo .env com variáveis necessárias
+    volumes:
+      - wordpress-data:/var/www/wordpress
     networks:
-     - inception
+      - inception
+    restart: always
+    depends_on:
+      - mariadb
+
+  mariadb:
+    build:
+      context: ./requirements/mariadb  # Caminho para o Dockerfile do mariadb
+    container_name: mariadb
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - inception
+    restart: always
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      - mariadb
+    ports:
+      - "8080:8080"
+  redis:
+    image: redis
+    container_name: redis
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      - wordpress
+
+volumes:
+  mariadb-data:
+    driver: local
+  wordpress-data:
+    driver: local
+
 networks:
   inception:
+    driver: bridge
