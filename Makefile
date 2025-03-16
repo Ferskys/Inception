@@ -19,7 +19,8 @@ clean: down
 	docker system prune -af
 
 fclean: clean
-	rm -rf data/mariadb/* data/wordpress/*
+	sudo rm -rf /home/fsuomins/inception/data/mariadb
+	sudo rm -rf /home/fsuomins/inception/data/wordpress
 	docker volume prune -f
 
 re: fclean all
