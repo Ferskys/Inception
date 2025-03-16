@@ -2,7 +2,7 @@
 
 all: build up
 
-build:
+build: install
 	docker compose -f srcs/docker-compose.yml build
 
 up:
@@ -10,6 +10,10 @@ up:
 
 down:
 	docker compose -f srcs/docker-compose.yml down
+
+install:
+	sudo mkdir -p /home/fsuomins/inception/data/wordpress
+	sudo mkdir -p /home/fsuomins/inception/data/mariadb
 
 clean: down
 	docker system prune -af

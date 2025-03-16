@@ -1,15 +1,17 @@
-FROM alpine:3.20.6
+FROM    alpine:3.20.6
 
-RUN apk add --no-cache nginx openssl && \
-    mkdir -p /etc/nginx/ssl && \
-    openssl req -x509 -sha256 -newkey rsa:2048 \
-        -keyout /etc/nginx/ssl/fsuomins.key \
-        -out /etc/nginx/ssl/fsuomins.crt \
-        -days 365 -nodes \
-        -subj "/C=BR/ST=SãoPaulo/L=Brasil/O=42 School/OU=fsuomins/CN=fsuomins/"
+RUN apk update && \
+    apk upgrade && \
+    apk add	nginx \
+              openssl
 
-COPY nginx.conf /etc/nginx/http.d/default.conf
+RUN mkdir -p etc/nginx/ssl
 
-EXPOSE 443
+RUN openssl req -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+       -out /etc/nginx/ssl/fsuomins.crt \
+       -keyout /etc/nginx/ssl/fsuomins.key \
+       -subj "/C=FR/ST=Paris/L=Paris/O=42 School/OU=fsuomins/CN=fsuomins/"
 
-CMD ["nginx", "-g", "daemon off;"]
+COPY conf/nginx.conf /etc/nginx/nginx.conf
+
+CMD [ "nginx", "-g", "daemon off;" ]

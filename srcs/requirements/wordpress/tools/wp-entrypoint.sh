@@ -1,45 +1,46 @@
 #!/bin/sh
 
-# Configuração do wp-config.php
-echo "Configurando wp-config.php..."
-wp config create --allow-root --path=/var/www/html \
-    --dbname=$WP_DATABASE_NAME \
-    --dbuser=$WP_DATABASE_USER \
-    --dbpass=$WP_DATABASE_PASSWORD \
-    --dbhost=$WP_DATABASE_HOST \
-    --dbprefix='wp_' \
-    --dbcharset="utf8"
+cd /var/www/wordpress
 
-# Instalar o WordPress
-echo "Instalando o WordPress..."
-wp core install --allow-root --path=/var/www/html \
-    --url=$WP_URL \
-    --title=$WP_TITLE \
-    --admin_user=$WP_ADMIN_USER \
-    --admin_password=$WP_ADMIN_PASSWORD \
-    --admin_email=$WP_ADMIN_EMAIL
+# Baixa o WordPress se os arquivos não existirem
+if [ ! -f index.php ]; then
+    echo "Baixando WordPress..."
+    wp core download --allow-root
+fi
 
-# Instalar e ativar o plugin Redis Cache
-echo "Instalando e ativando o plugin Redis Cache..."
-wp plugin install redis-cache --activate --allow-root
+# Remove a porta do WP_DB_HOST se necessário (i.e., "mariadb:3306" -> "mariadb")
+WP_DB_HOST=$(echo "$WP_DB_HOST" | cut -d: -f1)
 
-# Configuração do Redis
-echo "Configurando Redis..."
-wp config set WP_REDIS_HOST $REDIS_HOST --allow-root
-wp config set WP_REDIS_PORT $REDIS_PORT --allow-root
+# Espera até que o banco de dados esteja acessível
+while ! mysqladmin ping -h"$WP_DB_HOST" -u"$WP_DB_USER" -p"$WP_DB_PASSWORD" --silent; do
+    echo "Aguardando MariaDB em $WP_DB_HOST..."
+    sleep 1
+done
 
-# Ativar tema padrão (por exemplo, Twenty Twenty-Two)
-echo "Ativando o tema Twenty Twenty-Two..."
-wp theme activate twentytwentytwo --allow-root
+# Se o wp-config.php não existir, cria um novo
+if [ ! -f wp-config.php ]; then
+    echo "Gerando wp-config.php..."
+    wp config create --dbname="$WP_DB_NAME" \
+                     --dbuser="$WP_DB_USER" \
+                     --dbpass="$WP_DB_PASSWORD" \
+                     --dbhost="$WP_DB_HOST" \
+                     --allow-root
+fi
 
-# Habilitar o plugin Redis
-echo "Habilitando o plugin Redis..."
-wp redis enable --all --allow-root
+# Se o WordPress não estiver instalado, instala
+if ! wp core is-installed --allow-root; then
+    echo "Instalando WordPress..."
+    wp core install --url="$WP_URL" \
+                    --title="$WP_TITLE" \
+                    --admin_user="$WP_ADMIN" \
+                    --admin_password="$WP_ADMIN_PASSWORD" \
+                    --admin_email="$WP_ADMIN_EMAIL" \
+                    --allow-root
+fi
 
-# Criar o usuário do WordPress
-echo "Criando o usuário do WordPress..."
-wp user create $WP_USER $WP_USER_EMAIL --user_pass=$WP_USER_PASSWORD --allow-root
+# Ajusta permissões
+chown -R nobody:nobody /var/www/wordpress
+chmod -R 755 /var/www/wordpress
 
-# Chamar o php-fpm para rodar o WordPress
-echo "Iniciando o PHP-FPM..."
-php-fpm81 -F
+# Inicia o PHP-FPM
+php-fpm82 -F

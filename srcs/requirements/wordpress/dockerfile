@@ -1,46 +1,38 @@
-FROM wordpress:latest
+FROM alpine:3.20.6
 
-# Argumentos para o banco de dados
-ARG WP_DATABASE_NAME
-ARG WP_DATABASE_USER
-ARG WP_DATABASE_PASSWORD
-ARG WP_DATABASE_HOST
-ARG WP_DATABASE_ROOT
-ARG WP_DATABASE_ROOT_PASSWORD
-ARG WP_URL
-ARG WP_TITLE
-ARG WP_ADMIN_USER
-ARG WP_ADMIN_PASSWORD
-ARG WP_ADMIN_EMAIL
-ARG WP_USER
-ARG WP_USER_PASSWORD
-ARG WP_USER_EMAIL
-ARG REDIS_HOST
-ARG REDIS_PORT
+RUN apk update && \
+    apk upgrade && \
+    apk add php82 \
+            php82-fpm \
+            php82-mysqli \
+            php82-json \
+            php82-xml \
+            php82-curl \
+            php82-openssl \
+            php82-mbstring \
+            php82-gd \
+            php82-zlib \
+            php82-phar \
+            mysql-client \
+            curl && \
+            ln -s /usr/bin/php82 /usr/bin/php && \
+            ln -s /usr/bin/php-fpm82 /usr/bin/php-fpm
 
-# Instalar dependências (wp-cli e redis)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wp-cli \
-    redis-tools \
-    && rm -rf /var/lib/apt/lists/*
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 
-# Copiar o script de entrada
-COPY ./wp-entrypoint.sh /usr/local/bin/wp-entrypoint.sh
+RUN chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp
 
-# Tornar o script executável
-RUN chmod +x /usr/local/bin/wp-entrypoint.sh
+WORKDIR /var/www/wordpress
 
-# Copiar o wp-config.php se necessário
-COPY ./conf/wp-config.php /var/www/html/wp-config.php
+RUN echo "memory_limit = 512M" >> /etc/php82/php.ini
 
-# Ajuste de permissões
-RUN chown -R www-data:www-data /var/www/html
+RUN mkdir -p /run/php /var/www/wordpress
 
-# Expor a porta do servidor web
-EXPOSE 80
+COPY tools/wp-entrypoint.sh /usr/bin/wp-entrypoint.sh
+RUN chmod +x /usr/bin/wp-entrypoint.sh
 
-# Definir o entrypoint para o script personalizado
-ENTRYPOINT ["wp-entrypoint.sh"]
+RUN echo "listen = 0.0.0.0:9000" >> /etc/php82/php-fpm.d/www.conf
 
-# Executar o PHP-FPM
-CMD ["php-fpm81", "-F"]
+EXPOSE 9000
+
+ENTRYPOINT [ "/usr/bin/wp-entrypoint.sh" ]

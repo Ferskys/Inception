@@ -1,67 +1,66 @@
 version: "3.8"
 services:
   nginx:
-    build:
-      context: ./requirements/nginx  # Caminho para o Dockerfile do nginx
     container_name: nginx
+    build: requirements/nginx
     volumes:
-      - wordpress-data:/var/www/wordpress
+      - wordpress:/var/www/wordpress
     ports:
       - "443:443"
     networks:
       - inception
-    restart: always
     depends_on:
       - wordpress
 
   wordpress:
-    build:
-      context: ./requirements/wordpress  # Caminho para o Dockerfile do wordpress
     container_name: wordpress
+    build: requirements/wordpress
     env_file:
-      - .env  # Certifique-se de ter o arquivo .env com variáveis necessárias
+      - .env
     volumes:
-      - wordpress-data:/var/www/wordpress
+      - wordpress:/var/www/wordpress
     networks:
       - inception
-    restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/wp-admin/install.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   mariadb:
-    build:
-      context: ./requirements/mariadb  # Caminho para o Dockerfile do mariadb
     container_name: mariadb
+    build: requirements/mariadb
+    env_file:
+      - .env
     volumes:
-      - mariadb-data:/var/lib/mysql
+      - mariadb:/var/lib/mysql
     networks:
       - inception
-    restart: always
-
-  adminer:
-    image: adminer
-    container_name: adminer
-    networks:
-      - inception
-    restart: always
-    depends_on:
-      - mariadb
-    ports:
-      - "8080:8080"
-  redis:
-    image: redis
-    container_name: redis
-    networks:
-      - inception
-    restart: always
-    depends_on:
-      - wordpress
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$MYSQL_USER", "-p$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10 
+      start_period: 20s
 
 volumes:
-  mariadb-data:
+  wordpress:
     driver: local
-  wordpress-data:
-    driver: local
+    driver_opts:
+      type: none
+      device: /home/fsuomins/inception/data/wordpress
+      o: bind
+
+  mariadb:
+      driver: local
+      driver_opts:
+        type: none
+        device: /home/fsuomins/inception/data/mariadb
+        o: bind
 
 networks:
   inception:
