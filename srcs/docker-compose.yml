@@ -1,44 +1,71 @@
 version: '3.8'
 
 services:
-  mariadb:
-    build: ./requirements/mariadb
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - ../data/mariadb:/var/lib/mysql
-    networks:
-      - backend
-
-  wordpress:
-    build: ./requirements/wordpress
-    environment:
-      WORDPRESS_DB_HOST: mariadb:3306
-      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
-      WORDPRESS_DB_USER: ${MYSQL_USER}
-      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - ../data/wordpress:/var/www/html
-    depends_on:
-      - mariadb
-    networks:
-      - backend
-
   nginx:
-    build: ./requirements/nginx
+    container_name: nginx
+    build: requirements/nginx/
+    env_file:
+      - .env
     ports:
       - "443:443"
     volumes:
-      - ./requirements/nginx/conf:/etc/nginx/conf.d
-      - ./requirements/nginx/certs:/etc/nginx/certs
-    depends_on:
-      - wordpress
+      - wordpress:/var/www/wordpress
+    restart: always
     networks:
-      - backend
+      - inception
+    depends_on:
+      wordpress:
+        condition: service_started
 
+  mariadb:
+    container_name: mariadb
+    build: requirements/mariadb/
+    env_file:
+      - .env
+    volumes:
+      - mariadb:/var/lib/mysql
+    networks:
+      - inception
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$WP_DB_USER", "-p$$WP_DB_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  wordpress:
+    container_name: wordpress
+    build: requirements/wordpress/
+    env_file:
+      - .env
+    volumes:
+      - wordpress:/var/www/wordpress
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - inception
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep php-fpm82 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  wordpress:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/fsuomins/inception/data/wordpress
+      o: bind
+
+  mariadb:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/fsuomins/inception/data/mariadb
+      o: bind
 networks:
-  backend:
+  inception:
     driver: bridge
