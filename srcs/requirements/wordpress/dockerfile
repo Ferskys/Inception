@@ -31,7 +31,17 @@ RUN mkdir -p /run/php /var/www/wordpress
 COPY tools/wp-entrypoint.sh /usr/bin/wp-entrypoint.sh
 RUN chmod +x /usr/bin/wp-entrypoint.sh
 
-RUN echo "listen = 0.0.0.0:9000" >> /etc/php82/php-fpm.d/www.conf
+# Configure PHP-FPM
+RUN echo "listen = 0.0.0.0:9000" >> /etc/php82/php-fpm.d/www.conf && \
+    echo "pm.max_children = 50" >> /etc/php82/php-fpm.d/www.conf && \
+    echo "pm.start_servers = 5" >> /etc/php82/php-fpm.d/www.conf && \
+    echo "pm.min_spare_servers = 5" >> /etc/php82/php-fpm.d/www.conf && \
+    echo "pm.max_spare_servers = 35" >> /etc/php82/php-fpm.d/www.conf && \
+    echo "pm.max_requests = 500" >> /etc/php82/php-fpm.d/www.conf
+
+# Set proper permissions
+RUN chown -R nobody:nobody /var/www/wordpress && \
+    chmod -R 755 /var/www/wordpress
 
 EXPOSE 9000
 

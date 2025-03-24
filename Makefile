@@ -3,15 +3,17 @@
 all: build up
 
 build: install
-	docker compose -f srcs/docker-compose.yml build
+	docker-compose -f srcs/docker-compose.yml build
 
 up:
-	docker compose -f srcs/docker-compose.yml up -d
+	docker-compose -f srcs/docker-compose.yml up -d
 
 down:
-	docker compose -f srcs/docker-compose.yml down
+	docker-compose -f srcs/docker-compose.yml down
 
 install:
+	sudo chmod a+w /etc/hosts
+	sudo cat /etc/hosts | grep fsuomins.42.fr || echo "127.0.0.1 fsuomins.42.fr" >> /etc/hosts
 	sudo mkdir -p /home/fsuomins/inception/data/wordpress
 	sudo mkdir -p /home/fsuomins/inception/data/mariadb
 
