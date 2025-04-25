@@ -10,7 +10,6 @@ services:
       - "443:443"
     volumes:
       - wordpress:/var/www/wordpress
-    restart: always
     networks:
       - inception
     depends_on:
