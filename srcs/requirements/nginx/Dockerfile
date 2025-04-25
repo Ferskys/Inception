@@ -1,17 +1,16 @@
-FROM    alpine:3.20.6
+FROM alpine:3.20.6
+
+ENV DOMAIN_NAME=localhost
+ENV COMMON_NAME=localhost
 
 RUN apk update && \
     apk upgrade && \
-    apk add	nginx \
-              openssl
+    apk add nginx openssl bash gettext  # ← adiciona o gettext aqui
 
-RUN mkdir -p etc/nginx/ssl
+RUN mkdir -p /etc/nginx/ssl
 
-RUN openssl req -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
-       -out /etc/nginx/ssl/fsuomins.crt \
-       -keyout /etc/nginx/ssl/fsuomins.key \
-       -subj "/C=FR/ST=Paris/L=Paris/O=42 School/OU=fsuomins/CN=fsuomins/"
+COPY conf/nginx.conf.template /etc/nginx/nginx.conf.template
+COPY tools/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-COPY conf/nginx.conf /etc/nginx/nginx.conf
-
-CMD [ "nginx", "-g", "daemon off;" ]
+CMD ["/entrypoint.sh"]
